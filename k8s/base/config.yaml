@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: task-config
+  namespace: prod
+data:
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: "4015"
+    DB_URL: "jdbc:postgresql://postgres:5432/taskdb"
+    POSTGRES_DB: taskdb
