@@ -15,7 +15,7 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: app
+#  name: app
   namespace: prod
 spec:
   replicas: 2

@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Values.database.name }}
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: task-app
+
+
+spec:
+  serviceName: "postgres"
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgres
+      app.kubernetes.io/component: database
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: postgres
+        app.kubernetes.io/component: database
+
+    spec:
+      containers:
+        - name: {{ .Values.database.name}}
+          image: postgres
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort: {{ .Values.database.port}}
+          env:
+            - name: POSTGRES_PASSWORD
+              value: {{ .Values.database.password | quote}}
+            - name: POSTGRES_USER
+              value: {{ .Values.database.host}}
+            - name: POSTGRES_DB
+              value: {{ .Values.database.name}}
+
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
+

@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "task-app.fullname" . }}
+  namespace: {{ .Release.Namespace}}
+  labels:
+    {{ include "task-app.labels" . | nindent 8 }}
+
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{ include "task-app.selectorLabels.app" . | nindent 6 }}
+  template:
+    metadata:
+      ##later gonna add prometheus to scrape metric from these pods
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{ toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+      #to add more info about pod so we can use later , like to grap pod within a specific env
+        {{ include "task-app.selectorLabels.app" . | nindent 8 }}
+        {{ with .Values.podLabels }}
+        {{ toYaml . | nindent 8 }}
+        {{ end }}
+    spec:
+      #to access private image with credentials
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      #RBAC
+      serviceAccountName: {{ include "task-app.serviceAccountName" . }}
+      {{- with .Values.podSecurityContext }}
+      #pod security
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.app.port }}
+              name: http
+              protocol: TCP
+          env:
+            - name: DB_URL
+              value: jdbc:postgresql://{{.Values.database.host}}:{{ .Values.database.port}}/{{ .Values.database.name}}
+            - name: POSTGRES_PASSWORD
+              value: {{ .Values.database.password | quote}}
+            - name: POSTGRES_USER
+              value: {{ .Values.database.host}}
+          {{- with .Values.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
