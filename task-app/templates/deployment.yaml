@@ -55,7 +55,10 @@ spec:
             - name: DB_URL
               value: jdbc:postgresql://{{.Values.database.host}}:{{ .Values.database.port}}/{{ .Values.database.name}}
             - name: POSTGRES_PASSWORD
-              value: {{ .Values.database.password | quote}}
+              valueFrom:
+                secretKeyRef:
+                  name: db-pass-secret
+                  key: POSTGRES_PASSWORD
             - name: POSTGRES_USER
               value: {{ .Values.database.host}}
           {{- with .Values.livenessProbe }}
